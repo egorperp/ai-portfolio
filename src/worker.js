@@ -36,7 +36,7 @@ async function candidateModels(env) {
     } catch {}
     modelCache = { at: Date.now(), names };
   }
-  return [preferred, ...modelCache.names.filter((n) => n !== preferred)].slice(0, 4);
+  return [preferred, ...modelCache.names.filter((n) => n !== preferred)].slice(0, 8);
 }
 
 async function gemini(request, env) {

@@ -9,7 +9,7 @@ not_found_handling = "404-page"
 run_worker_first = ["/api/*"]
 
 [vars]
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.8-flash"
 
 # 20 AI requests per minute per IP
 [[ratelimits]]

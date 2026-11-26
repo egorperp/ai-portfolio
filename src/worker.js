@@ -21,6 +21,7 @@ const rank = (n) => (/^gemini-\d/.test(n) ? 2 : 0) + (/preview/.test(n) ? -1 : 0
 
 // Preferred model first, then other Flash models this key can use (newest first). Cached per isolate for an hour.
 let modelCache = null;
+let lastGood = null; // the model that answered last; tried first next time
 async function candidateModels(env) {
   const preferred = env.GEMINI_MODEL || "gemini-3.8-flash";
   if (!modelCache || Date.now() - modelCache.at > 3_600_000) {
@@ -36,7 +37,8 @@ async function candidateModels(env) {
     } catch {}
     modelCache = { at: Date.now(), names };
   }
-  return [preferred, ...modelCache.names.filter((n) => n !== preferred)].slice(0, 8);
+  const order = [lastGood, preferred, ...modelCache.names].filter(Boolean);
+  return [...new Set(order)].slice(0, 8);
 }
 
 async function gemini(request, env) {
@@ -68,8 +70,10 @@ async function gemini(request, env) {
       method: "POST",
       headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
       body: JSON.stringify(payload),
-    });
+      signal: AbortSignal.timeout(20_000),
+    }).catch(() => new Response("{}", { status: 503 }));
     const data = await upstream.json().catch(() => ({}));
+    if (upstream.ok) lastGood = model;
     if (upstream.ok) return json({ candidates: data.candidates, usageMetadata: data.usageMetadata, modelVersion: data.modelVersion || model });
     last = { status: upstream.status, detail: String(data?.error?.message || "").slice(0, 200) };
     console.log("gemini error", model, last.status, last.detail);

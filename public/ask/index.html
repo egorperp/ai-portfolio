@@ -259,12 +259,15 @@ $("#bars").addEventListener("keydown", e => { if (e.key === "Enter") { const b =
 $("#ans").addEventListener("click", e => { const c = e.target.closest(".c"); if (c) showPassage(+c.dataset.i); });
 
 // ---------- answering ----------
-const prompt = (q, ctx) => `You answer questions about a company's documents. Use ONLY the numbered passages below. Cite every statement with the passage number in square brackets, like [2]. If the passages do not contain the answer, reply exactly that the documents do not say, in the language of the question. Answer in the same language as the QUESTION (not the language of the passages), in 1 to 4 short sentences of plain text.
+const langOf = q => /[čšžćđ]|\b(koliko|ali|kaj|kje|kdaj|kako|zakaj|stane|imate|lahko|je|so)\b/i.test(q) ? "Slovenian" : "English";
+const prompt = (q, ctx) => `You answer questions about a company's documents. Use ONLY the numbered passages below. Cite every statement with the passage number in square brackets, like [2]. If the passages do not contain the answer, say that the documents do not say. Answer in 1 to 4 short sentences of plain text.
 
 PASSAGES:
 ${ctx.map((h, i) => `[${i + 1}] (${h.doc})\n${h.text}`).join("\n\n")}
 
-QUESTION: ${q}`;
+QUESTION: ${q}
+
+Write your answer in ${langOf(q)}, even if the passages are in another language.`;
 function renderAnswer(text) {
   const cited = new Set();
   $("#ans").innerHTML = esc(text).replace(/\[(\d+)\]/g, (m, n) => { if (hits[n - 1]) { cited.add(+n); return `<span class="c" data-i="${n - 1}" title="${esc(hits[n - 1].doc)}">[${n}]</span>`; } return m; });

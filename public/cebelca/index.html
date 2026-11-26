@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Čebelca MCP playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a developer tool demo, precise and calm
+   IDEA an accountant's ledger page that the AI writes into, line by line, as tools run
+   PICTURE the live ledger of invoices beside the chat, rows lighting up when a tool touches them
+   COLOUR white, ink, blue for tool calls, amber for pending approval, red overdue, green paid
+   TYPE Figtree 800 display + Figtree, JetBrains Mono for tool payloads
+   LAYOUT laptop: chat left, ledger right; phone: title, ledger, chat */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0e1116);--ink:light-dark(#14161a,#e9ecf1);--mute:light-dark(#5d6470,#9aa3b2);--line:light-dark(#e3e6eb,#252a33);--panel:light-dark(#f6f7f9,#151a21);--blue:light-dark(#0a5cff,#5b93ff);--amber:light-dark(#b37800,#ffb400);--amberbg:light-dark(#fff4d6,#2a2210);--red:light-dark(#d01f17,#ff6b63);--green:light-dark(#00804a,#3ccf8e)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 Figtree,system-ui,sans-serif;overflow-x:clip}
+a{color:var(--blue)}
+.band{padding:clamp(20px,3vw,40px) max(4vw,16px)}
+header.band{padding-bottom:12px;display:flex;flex-wrap:wrap;gap:12px 32px;align-items:end;justify-content:space-between}
+h1{font-weight:800;font-size:clamp(30px,4vw,44px);line-height:1.05;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.lede{margin:8px 0 0;color:var(--mute);max-width:62ch}
+.links{display:flex;gap:10px;flex-wrap:wrap}
+.btn{font:600 15px Figtree,sans-serif;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:10px 14px;min-height:44px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btn:hover{border-color:var(--ink)}.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;padding-top:8px}
+@media(max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}.ledger{order:-1}}
+.card{border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.chat{display:flex;flex-direction:column;height:min(78vh,760px)}
+.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.m{max-width:92%;padding:10px 14px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.m.u{align-self:flex-end;background:var(--ink);color:var(--bg)}
+.m.a{align-self:flex-start;background:var(--panel)}
+.tool{align-self:flex-start;max-width:96%;border-left:3px solid var(--blue);padding:4px 10px;font-size:14px}
+.tool summary{cursor:pointer;color:var(--blue);font-weight:600}
+.tool.pending{border-color:var(--amber)}.tool.pending summary{color:var(--amber)}
+.tool pre{font:12.5px/1.45 'JetBrains Mono',monospace;background:var(--panel);padding:8px;border-radius:6px;overflow-x:auto;margin:6px 0 0;max-height:240px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 10px}
+.chip{font:500 14px Figtree,sans-serif;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 12px;cursor:pointer;min-height:40px}
+.chip:hover{border-color:var(--blue);color:var(--blue)}
+form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+textarea{flex:1;font:16px Figtree,sans-serif;border:1px solid var(--line);border-radius:8px;padding:10px;resize:none;background:var(--bg);color:var(--ink);min-height:44px}
+.engine{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);font-size:14px;color:var(--mute)}
+.engine input{font:14px Figtree,sans-serif;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--bg);color:var(--ink);width:15em;min-height:36px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--mute);display:inline-block}.dot.on{background:var(--green)}
+.ledger{padding:16px}
+.ledger h2{font-size:20px;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--mute);font-size:14px;margin:0 0 12px}
+.figs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.fig{background:var(--panel);border-radius:10px;padding:10px 12px}
+.fig b{display:block;font-size:clamp(20px,2.4vw,26px);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fig span{font-size:13px;color:var(--mute)}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:var(--mute);border-bottom:1px solid var(--line);padding:6px}
+td{border-bottom:1px solid var(--line);padding:8px 6px;vertical-align:top}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.flash{animation:fl 1.6s ease-out}
+@keyframes fl{from{background:color-mix(in srgb,var(--blue) 22%,transparent)}to{background:transparent}}
+@media(prefers-reduced-motion:reduce){tr.flash{animation:none}}
+.pill{font-size:12.5px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;border:1px solid currentColor}
+.s-overdue{color:var(--red)}.s-paid{color:var(--green)}.s-issued{color:var(--blue)}.s-draft{color:var(--amber)}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:16px;padding-top:0}
+.how div{border-top:3px solid var(--ink);padding-top:10px}
+.how h3{margin:0 0 4px;font-size:17px}
+.how p{margin:0;color:var(--mute);font-size:15px}
+.note{font-size:13px;color:var(--mute)}
+code{font-family:'JetBrains Mono',monospace;font-size:.9em;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<header class="band">
+  <div>
+    <h1>Čebelca MCP playground</h1>
+    <p class="lede">Talk to an AI assistant that works in the Slovenian invoicing service Čebelca BIZ through MCP tools. Every tool call is shown, and nothing is written without your approval.</p>
+  </div>
+  <div class="links">
+    <a class="btn" href="/">Portfolio</a><a class="btn" href="#how">How it works</a>
+    <a class="btn primary" id="gh" href="https://github.com/egorperp/cebelca-mcp" target="_blank" rel="noopener">Source code</a>
+  </div>
+</header>
+
+<main class="band grid" style="padding-top:8px">
+  <section class="card chat" aria-label="Chat">
+    <div class="engine"><span class="dot on" id="dot"></span><span id="engineTxt">Google Gemini 2.5 Flash · demo account</span>
+      <button class="btn" id="replay" type="button" style="margin-left:auto">Replay example</button>
+    </div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <div class="chips" id="chips"></div>
+    <form id="f"><textarea id="q" rows="1" placeholder="e.g. Which invoices are overdue?" aria-label="Message"></textarea><button class="btn primary" id="send">Send</button></form>
+  </section>
+
+  <section class="card ledger" aria-label="Ledger">
+    <h2>Ledger</h2>
+    <p class="sub">Demo data the tools read and write. Fictional companies.</p>
+    <div class="figs" id="figs"></div>
+    <div class="scroll"><table><thead><tr><th>No.</th><th>Customer</th><th>Due</th><th>Status</th><th class="n">Total €</th><th class="n">Open €</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <p class="note" style="margin-top:12px">Partners: <span id="partners"></span></p>
+  </section>
+</main>
+
+<section class="band how" id="how">
+  <div><h3>1 · MCP tools</h3><p>The assistant sees 9 tools: search partners, list invoices, calculate VAT totals, create a draft, add a payment, issue the invoice, download the PDF. The same tools run in the Python server for Claude Desktop, ChatGPT or n8n.</p></div>
+  <div><h3>2 · Preview, then confirm</h3><p>Write tools return a preview with VAT per rate unless called with <code>confirm=true</code>. The assistant has to show it and wait for a yes. Issued invoices cannot be issued twice.</p></div>
+  <div><h3>3 · Validation</h3><p>Only Slovenian VAT rates (22, 9.5, 5, 0), no negative prices, discounts 0 to 100 %. IDs must be looked up, never guessed.</p></div>
+  <div><h3>4 · Real API</h3><p>In test or live mode the server calls <code>cebelca.biz/API?_r=…&amp;_m=…</code> with the token kept in its environment, never in the prompt. Fiscal cash invoices are out of scope.</p></div>
+</section>
+
+<script>
+{
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const iso = d => d.toISOString().slice(0, 10);
+const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); };
+const eur = n => n.toLocaleString("sl-SI", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+// ---------- demo backend (mirrors client.py) ----------
+const db = {
+  partners: [
+    {id: 1, name: "Kavarna Lipa d.o.o.", city: "Maribor", vat_id: "SI12345678"},
+    {id: 2, name: "Studio Vrba s.p.", city: "Ljubljana", vat_id: ""},
+    {id: 3, name: "Zelena Energija d.o.o.", city: "Celje", vat_id: "SI87654321"},
+  ],
+  invoices: [
+    {id: 101, title: "26-0041", partner_id: 1, date_sent: day(-40), date_to_pay: day(-10), status: "issued", paid: 0, items: [{title: "Spletna stran, vzdrževanje", qty: 1, unit: "mesec", price: 120, vat: 22}]},
+    {id: 102, title: "26-0042", partner_id: 3, date_sent: day(-12), date_to_pay: day(18), status: "issued", paid: 0, items: [{title: "AI chatbot, postavitev", qty: 1, unit: "kos", price: 900, vat: 22}, {title: "Svetovanje", qty: 4, unit: "ura", price: 50, vat: 22}]},
+    {id: 103, title: "26-0043", partner_id: 2, date_sent: day(-5), date_to_pay: day(10), status: "issued", paid: 30.5, items: [{title: "Fotografiranje izdelkov", qty: 10, unit: "kos", price: 5, vat: 22}]},
+  ],
+};
+const r2 = n => Math.round(n * 100) / 100;
+function totals(items) {
+  let net = 0, vat = 0; const by = {};
+  for (const i of items) {
+    const v = i.vat == null ? 22 : +i.vat;
+    const n = r2((+i.qty || 1) * +i.price * (1 - (+i.discount || 0) / 100)), t = r2(n * v / 100);
+    net += n; vat += t; const k = v + "%"; by[k] = r2((by[k] || 0) + t);
+  }
+  return {net: r2(net), vat: r2(vat), gross: r2(net + vat), vat_by_rate: by};
+}
+function validate(items) {
+  const e = [];
+  if (!items?.length) e.push("At least one invoice line is needed.");
+  (items || []).forEach((i, n) => {
+    if (!String(i.title || "").trim()) e.push(`Line ${n + 1}: title is missing.`);
+    if (!(+i.price >= 0)) e.push(`Line ${n + 1}: price must be a non-negative number.`);
+    if (![0, 5, 9.5, 22].includes(+(i.vat ?? 22))) e.push(`Line ${n + 1}: VAT ${i.vat} is not a Slovenian rate.`);
+  });
+  return e;
+}
+const pname = id => db.partners.find(p => p.id === id)?.name || `partner #${id}`;
+function state(inv) {
+  const g = totals(inv.items).gross, open = r2(g - inv.paid);
+  let s = inv.status;
+  if (s === "issued" && open <= 0) s = "paid"; else if (s === "issued" && inv.date_to_pay < iso(new Date())) s = "overdue";
+  return {s, g, open: Math.max(open, 0)};
+}
+const findInv = id => { const i = db.invoices.find(x => x.id === +id); if (!i) throw new Error(`Invoice ${id} not found.`); return i; };
+let touched = new Set();
+const line = {type: "object", properties: {title: {type: "string"}, qty: {type: "number"}, unit: {type: "string"}, price: {type: "number", description: "unit price without VAT, EUR"}, vat: {type: "number", description: "22, 9.5, 5 or 0"}, discount: {type: "number"}}, required: ["title", "price"]};
+const TOOLS = [
+  {name: "search_partners", description: "Search customers by part of name or VAT ID; empty query for all.", schema: {type: "object", properties: {query: {type: "string"}}},
+   run: ({query = ""}) => db.partners.filter(p => (p.name + p.vat_id).toLowerCase().includes(query.toLowerCase()))},
+  {name: "list_invoices", description: "List invoices with status (draft, issued, overdue, paid), total and open amount.", schema: {type: "object", properties: {status: {type: "string", enum: ["all", "draft", "issued", "overdue", "paid"]}, partner_id: {type: "integer"}}},
+   run: ({status = "all", partner_id}) => db.invoices.map(i => ({i, st: state(i)})).filter(({i, st}) => (status === "all" || st.s === status) && (!partner_id || i.partner_id === partner_id))
+     .map(({i, st}) => ({id: i.id, title: i.title, partner: pname(i.partner_id), date_to_pay: i.date_to_pay, status: st.s, gross: st.g, open_amount: st.open}))},
+  {name: "calculate_totals", description: "Net, VAT per rate and gross for invoice lines, without creating anything.", schema: {type: "object", properties: {items: {type: "array", items: line}}, required: ["items"]},
+   run: ({items}) => totals(items)},
+  {name: "find_or_create_partner", description: "Find a customer by VAT ID or name, or create it.", schema: {type: "object", properties: {name: {type: "string"}, city: {type: "string"}, vat_id: {type: "string"}}, required: ["name"]},
+   run: ({name, city = "", vat_id = ""}) => {
+     const ex = db.partners.find(p => (vat_id && p.vat_id === vat_id) || p.name.toLowerCase() === name.toLowerCase());
+     if (ex) return {...ex, created: false};
+     const p = {id: Math.max(...db.partners.map(p => p.id)) + 1, name, city, vat_id}; db.partners.push(p); return {...p, created: true};
+   }},
+  {name: "create_invoice_draft", description: "Prepare an invoice draft. confirm=false returns only a preview; confirm=true creates it. Only confirm after the user approved the preview.", write: true,
+   schema: {type: "object", properties: {partner_id: {type: "integer"}, items: {type: "array", items: line}, due_days: {type: "integer"}, confirm: {type: "boolean"}}, required: ["partner_id", "items"]},
+   run: ({partner_id, items, due_days = 15, confirm = false}) => {
+     const e = validate(items); if (e.length) return {ok: false, errors: e};
+     if (!db.partners.some(p => p.id === partner_id)) return {ok: false, errors: [`Partner ${partner_id} does not exist. Search first.`]};
+     const pv = {partner: pname(partner_id), date_sent: day(0), date_to_pay: day(due_days), items, totals: totals(items)};
+     if (!confirm) return {ok: true, preview: pv, next_step: "Show the preview and ask the user to approve."};
+     const id = Math.max(...db.invoices.map(i => i.id)) + 1;
+     db.invoices.push({id, title: "", partner_id, date_sent: pv.date_sent, date_to_pay: pv.date_to_pay, status: "draft", paid: 0, items}); touched.add(id);
+     return {ok: true, invoice_id: id, status: "draft", ...pv};
+   }},
+  {name: "add_payment", description: "Record a payment on an invoice. confirm=false returns a preview.", write: true,
+   schema: {type: "object", properties: {invoice_id: {type: "integer"}, amount: {type: "number"}, confirm: {type: "boolean"}}, required: ["invoice_id", "amount"]},
+   run: ({invoice_id, amount, confirm = false}) => {
+     const i = findInv(invoice_id); if (!(amount > 0)) return {ok: false, errors: ["Amount must be positive."]};
+     if (!confirm) return {ok: true, preview: {invoice: i.title || i.id, amount, open_before: state(i).open}};
+     i.paid = r2(i.paid + amount); touched.add(i.id); return {ok: true, paid_total: i.paid, open_amount: state(i).open};
+   }},
+  {name: "finalize_invoice", description: "Issue a draft as a non-fiscal invoice with the given number. Cannot be undone. confirm=false returns a preview.", write: true,
+   schema: {type: "object", properties: {invoice_id: {type: "integer"}, number: {type: "string"}, confirm: {type: "boolean"}}, required: ["invoice_id", "number"]},
+   run: ({invoice_id, number, confirm = false}) => {
+     const i = findInv(invoice_id); if (i.status !== "draft") return {ok: false, errors: [`Invoice ${invoice_id} is already ${i.status}.`]};
+     if (!confirm) return {ok: true, preview: {invoice_id, number, totals: totals(i.items)}, next_step: "Issuing cannot be undone. Ask the user."};
+     i.status = "issued"; i.title = number; touched.add(i.id); return {ok: true, number, status: "issued"};
+   }},
+];
+const SYSTEM = `You are an invoicing assistant connected to Čebelca BIZ (Slovenian invoicing) through tools. Today is ${day(0)}. Amounts in EUR.
+Rules: look up partner and invoice IDs with tools, never guess. Before any call with confirm=true you MUST have shown the preview from the same tool with confirm=false and received the user's explicit approval in a later message. Next invoice number after 26-0043 is 26-0044. Answer briefly in the user's language, with amounts formatted like 1.234,56 €.`;
+
+// ---------- render ledger ----------
+function render() {
+  const rows = db.invoices.map(i => ({i, st: state(i)}));
+  const open = r2(rows.reduce((a, r) => a + r.st.open, 0)), over = r2(rows.filter(r => r.st.s === "overdue").reduce((a, r) => a + r.st.open, 0));
+  const inv = r2(rows.filter(r => r.i.status !== "draft").reduce((a, r) => a + r.st.g, 0));
+  $("#figs").innerHTML = [["Invoiced", inv], ["Open", open], ["Overdue", over]].map(([l, v]) => `<div class="fig"><span>${l}</span><b>${eur(v)} €</b></div>`).join("");
+  $("#rows").innerHTML = rows.map(({i, st}) => `<tr class="${touched.has(i.id) ? "flash" : ""}"><td>${esc(i.title || "draft #" + i.id)}</td><td>${esc(pname(i.partner_id))}</td><td style="white-space:nowrap">${esc(i.date_to_pay.split("-").reverse().join("."))}</td><td><span class="pill s-${st.s}">${st.s}</span></td><td class="n">${eur(st.g)}</td><td class="n">${eur(st.open)}</td></tr>`).join("");
+  $("#partners").textContent = db.partners.map(p => p.name).join(" · ");
+  touched = new Set();
+}
+
+// ---------- chat ----------
+const history = [];
+function add(cls, html) { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; $("#msgs").append(d); $("#msgs").scrollTop = 1e9; return d; }
+function toolCard(name, args, result) {
+  const pending = args.confirm === false || (TOOLS.find(t => t.name === name)?.write && !args.confirm);
+  add("tool" + (pending ? " pending" : ""), `<details><summary>${pending ? "Preview" : "Tool"}: ${esc(name)}</summary><pre>${esc(JSON.stringify(args, null, 2))}</pre><pre>${esc(JSON.stringify(result, null, 2))}</pre></details>`);
+}
+function exec(name, args) {
+  const t = TOOLS.find(t => t.name === name); let res;
+  try { res = t ? t.run(args || {}) : {ok: false, errors: ["Unknown tool"]}; } catch (e) { res = {ok: false, errors: [e.message]}; }
+  toolCard(name, args || {}, res); render(); return res;
+}
+
+async function viaGemini() {
+  const contents = history.map(m => ({role: m.role === "assistant" ? "model" : "user", parts: [{text: m.content}]}));
+  const decl = [{functionDeclarations: TOOLS.map(t => ({name: t.name, description: t.description, parameters: t.schema}))}];
+  for (let step = 0; step < 8; step++) {
+    const r = await fetch("/api/gemini", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({systemInstruction: {parts: [{text: SYSTEM}]}, contents, tools: decl, generationConfig: {temperature: 0.2}})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "Service error " + r.status);
+    const parts = j.candidates?.[0]?.content?.parts || [];
+    contents.push({role: "model", parts});
+    const calls = parts.filter(p => p.functionCall);
+    if (!calls.length) { const text = parts.map(p => p.text || "").join("").trim() || "(no answer)"; add("m a", esc(text)); return text; }
+    contents.push({role: "user", parts: calls.map(c => ({functionResponse: {name: c.functionCall.name, response: {result: exec(c.functionCall.name, c.functionCall.args)}}}))});
+  }
+  throw new Error("Too many tool steps");
+}
+let busy = false;
+async function ask(text) {
+  if (busy || !text.trim()) return;
+  busy = true; $("#send").disabled = true;
+  add("m u", esc(text)); history.push({role: "user", content: text});
+  try { history.push({role: "assistant", content: await viaGemini()}); }
+  catch (e) { add("m a", esc("Error: " + e.message)); history.pop(); }
+  busy = false; $("#send").disabled = false;
+}
+$("#f").addEventListener("submit", e => { e.preventDefault(); const t = $("#q").value; $("#q").value = ""; ask(t); });
+$("#q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#f").requestSubmit(); } });
+const CHIPS = ["Which invoices are overdue?", "Invoice Kavarna Lipa for 4 hours of consulting at 50 € per hour", "Studio Vrba paid the rest today", "Summarise this month and draft a payment reminder in Slovenian"];
+$("#chips").innerHTML = CHIPS.map(c => `<button class="chip" type="button">${esc(c)}</button>`).join("");
+$("#chips").addEventListener("click", e => { if (e.target.matches(".chip")) ask(e.target.textContent); });
+
+// scripted example for viewers without a model: real tools, scripted words
+const SCRIPT = [
+  ["u", "Which invoices are overdue?"], ["t", "list_invoices", {status: "overdue"}],
+  ["a", "One invoice is overdue: 26-0041 for Kavarna Lipa d.o.o., 146,40 € open, due 10 days ago. Shall I prepare a reminder?"],
+  ["u", "Invoice Kavarna Lipa for 4 hours of consulting at 50 € per hour"], ["t", "search_partners", {query: "Lipa"}],
+  ["t", "create_invoice_draft", {partner_id: 1, items: [{title: "Svetovanje", qty: 4, unit: "ura", price: 50, vat: 22}], confirm: false}],
+  ["a", "Preview for Kavarna Lipa d.o.o.: 4 h consulting × 50 € = 200,00 € + 22 % VAT 44,00 € = 244,00 €, due in 15 days. Create the draft?"],
+  ["u", "Yes"], ["t", "create_invoice_draft", {partner_id: 1, items: [{title: "Svetovanje", qty: 4, unit: "ura", price: 50, vat: 22}], confirm: true}],
+  ["a", "Draft created. It is not issued yet: say the word and I will issue it as 26-0044."],
+];
+$("#replay").addEventListener("click", async () => {
+  $("#replay").disabled = true;
+  for (const s of SCRIPT) { await new Promise(r => setTimeout(r, 900)); if (s[0] === "t") exec(s[1], s[2]); else add("m " + s[0], esc(s[1])); }
+  $("#replay").disabled = false;
+});
+
+render();
+add("m a", "Hi! I can look up customers and invoices in the demo Čebelca account, prepare invoices and record payments. Try one of the suggestions below.");
+}
+</script>
+</body>
+</html>

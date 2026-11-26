@@ -259,7 +259,7 @@ $("#bars").addEventListener("keydown", e => { if (e.key === "Enter") { const b =
 $("#ans").addEventListener("click", e => { const c = e.target.closest(".c"); if (c) showPassage(+c.dataset.i); });
 
 // ---------- answering ----------
-const prompt = (q, ctx) => `You answer questions about a company's documents. Use ONLY the numbered passages below. Cite every statement with the passage number in square brackets, like [2]. If the passages do not contain the answer, reply exactly that the documents do not say, in the language of the question. Answer in the language of the question, in 1 to 4 short sentences.
+const prompt = (q, ctx) => `You answer questions about a company's documents. Use ONLY the numbered passages below. Cite every statement with the passage number in square brackets, like [2]. If the passages do not contain the answer, reply exactly that the documents do not say, in the language of the question. Answer in the same language as the QUESTION (not the language of the passages), in 1 to 4 short sentences of plain text.
 
 PASSAGES:
 ${ctx.map((h, i) => `[${i + 1}] (${h.doc})\n${h.text}`).join("\n\n")}

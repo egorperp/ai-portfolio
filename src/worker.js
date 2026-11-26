@@ -47,7 +47,9 @@ async function gemini(request, env) {
   const data = await upstream.json().catch(() => ({}));
   if (!upstream.ok) {
     const status = upstream.status === 429 ? 429 : 502;
-    return json({ error: status === 429 ? "The free AI quota is busy right now. Please try again in a minute." : "The AI service returned an error." }, status);
+    const detail = String(data?.error?.message || "").slice(0, 200);
+    console.log("gemini error", upstream.status, detail);
+    return json({ error: status === 429 ? "The free AI quota is busy right now. Please try again in a minute." : `The AI service returned an error (${upstream.status}${detail ? ": " + detail : ""}).` }, status);
   }
   return json({ candidates: data.candidates, usageMetadata: data.usageMetadata, modelVersion: data.modelVersion });
 }

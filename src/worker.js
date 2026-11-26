@@ -16,6 +16,9 @@ const API = "https://generativelanguage.googleapis.com/v1beta";
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 
+// Stable numbered models (gemini-3.5-flash) rank above previews and other families.
+const rank = (n) => (/^gemini-\d/.test(n) ? 2 : 0) + (/preview/.test(n) ? -1 : 0) + (/lite/.test(n) ? -0.5 : 0);
+
 // Preferred model first, then other Flash models this key can use (newest first). Cached per isolate for an hour.
 let modelCache = null;
 async function candidateModels(env) {
@@ -29,7 +32,7 @@ async function candidateModels(env) {
         .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
         .map((m) => m.name.replace(/^models\//, ""))
         .filter((n) => /flash/.test(n) && !/(image|tts|audio|live|embed|exp)/.test(n))
-        .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+        .sort((a, b) => rank(b) - rank(a) || b.localeCompare(a, undefined, { numeric: true }));
     } catch {}
     modelCache = { at: Date.now(), names };
   }
@@ -74,7 +77,7 @@ async function gemini(request, env) {
   }
   const busy = last && [429, 503].includes(last.status);
   return json(
-    { error: busy ? "The AI models are busy right now. Please try again in a minute." : `The AI service returned an error (${last?.status}${last?.detail ? ": " + last.detail : ""}).` },
+    { status: last?.status, error: busy ? "The AI models are busy right now. Please try again in a minute." : `The AI service returned an error (${last?.status}${last?.detail ? ": " + last.detail : ""}).` },
     busy ? 429 : 502,
   );
 }
@@ -85,7 +88,7 @@ export default {
     if (url.pathname === "/api/gemini") return gemini(request, env);
     if (url.pathname === "/api/health") {
       const models = env.GEMINI_API_KEY ? await candidateModels(env) : [];
-      return json({ ok: true, ai: Boolean(env.GEMINI_API_KEY), models });
+      return json({ ok: true, ai: Boolean(env.GEMINI_API_KEY), models, available: modelCache?.names || [] });
     }
     return env.ASSETS.fetch(request);
   },

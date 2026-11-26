@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the Documents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a company knowledge assistant, clear and trustworthy
+   IDEA a librarian's index card: every answer points to the exact passage it came from
+   PICTURE the retrieval chart: the top passages for the question as score bars, cited ones filled
+   COLOUR white, ink, green lead (grounded), one coral accent for the citation marks
+   TYPE Figtree 800 + Figtree
+   LAYOUT laptop: question+answer left, retrieval chart and sources right, library and evaluation below; phone stacks */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0f1312);--ink:light-dark(#131a17,#e6eeea);--mute:light-dark(#5a6862,#9cb0a7);--line:light-dark(#e1e8e4,#24302b);--panel:light-dark(#f4f8f6,#151d1a);--green:light-dark(#0f7a4f,#3fd18d);--greenbg:light-dark(#dff3e9,#173a2b);--coral:light-dark(#d9482b,#ff8a6e)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Figtree,system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(20px,3vw,40px) max(4vw,16px)}
+h1{font-weight:800;font-size:clamp(30px,4vw,46px);line-height:1.05;letter-spacing:-.02em;margin:0 0 8px}
+h2{font-size:22px;margin:0 0 10px;letter-spacing:-.01em}
+.lede{color:var(--mute);margin:0 0 16px;max-width:66ch}
+.top{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:start}
+@media(max-width:880px){.top{grid-template-columns:minmax(0,1fr)}}
+.ask{display:flex;gap:8px}
+input[type=text],input[type=password],textarea{width:100%;font:16px Figtree,sans-serif;border:1px solid var(--line);border-radius:8px;padding:11px 12px;background:var(--bg);color:var(--ink);min-height:44px}
+.btn{font:600 15px Figtree,sans-serif;border:0;background:var(--green);color:#fff;border-radius:8px;padding:11px 18px;min-height:44px;cursor:pointer;white-space:nowrap}
+.btn.ghost{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.6;cursor:wait}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.chip{font:500 14px Figtree,sans-serif;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:7px 12px;cursor:pointer;min-height:38px}
+.chip:hover{border-color:var(--green);color:var(--green)}
+.answer{background:var(--panel);border-radius:12px;padding:16px 18px;min-height:140px;white-space:pre-wrap}
+.answer .c{color:var(--coral);font-weight:700;cursor:pointer;font-size:.85em;vertical-align:super}
+.meta{font-size:14px;color:var(--mute);margin-top:8px}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:2.2em minmax(0,1fr) 3.2em;gap:8px;align-items:center;font-size:14px;cursor:pointer;border-radius:6px;padding:2px}
+.bar:hover{background:var(--panel)}
+.bar .n{font-weight:700;color:var(--mute)}
+.bar.cited .n{color:var(--coral)}
+.bar .t{overflow:hidden;display:block}
+.bar .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.track{display:block;height:10px;background:var(--line);border-radius:5px;margin-top:3px}
+.track i{display:block;height:100%;border-radius:5px;background:color-mix(in srgb,var(--green) 45%,transparent)}
+.bar.cited .track i{background:var(--green)}
+.bar .s{text-align:right;font-variant-numeric:tabular-nums;color:var(--mute)}
+.passage{border-left:3px solid var(--coral);padding:8px 12px;margin-top:12px;background:var(--panel);border-radius:0 8px 8px 0;font-size:15px;white-space:pre-wrap}
+.empty{color:var(--mute);font-size:15px}
+.lib{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:28px;background:var(--panel)}
+@media(max-width:880px){.lib{grid-template-columns:minmax(0,1fr)}}
+.docs{list-style:none;margin:0;padding:0}
+.docs li{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:9px 0;font-size:15px}
+.docs button{border:0;background:none;color:var(--mute);cursor:pointer;font:14px Figtree,sans-serif;min-height:32px}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;color:var(--mute);margin-top:10px}
+.drop.on{border-color:var(--green);color:var(--green)}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+th{color:var(--mute);font-weight:600}
+td.ok{color:var(--green);font-weight:700}td.no{color:var(--coral);font-weight:700}
+.big{font-size:clamp(28px,4vw,40px);font-weight:800;color:var(--green);font-variant-numeric:tabular-nums}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(14em,1fr));gap:18px}
+.how div{border-top:3px solid var(--green);padding-top:8px}
+.how h3{margin:0 0 4px;font-size:17px}.how p{margin:0;color:var(--mute);font-size:15px}
+</style>
+<script src="/vendor/pdf.min.js"></script>
+<script src="/vendor/mammoth.browser.min.js"></script>
+</head>
+<body>
+<section class="band top">
+  <div>
+    <p style="margin:0 0 8px"><a href="/" style="color:var(--green)">← Portfolio</a></p>
+    <h1>Ask the documents</h1>
+    <p class="lede">Upload your own PDF, Word or text files and ask questions in English or Slovenian. The assistant finds the relevant passages first, answers only from them and cites each source. If the answer is not in the documents, it says so. Sample documents are loaded so you can try it right away.</p>
+    <form class="ask" id="f"><input type="text" id="q" placeholder="Ask a question in English or Slovenian" aria-label="Question"><button class="btn" id="go">Ask</button></form>
+    <div class="chips" id="chips"></div>
+    <div class="answer" id="ans" aria-live="polite"><span class="empty">Pick a question above or ask your own.</span></div>
+    <div class="meta" id="meta"></div>
+  </div>
+  <div>
+    <h2>What the retriever found</h2>
+    <div class="bars" id="bars"><p class="empty">The top passages and their relevance scores appear here.</p></div>
+    <div id="passage"></div>
+  </div>
+</section>
+
+<section class="band lib">
+  <div>
+    <h2>Library</h2>
+    <p class="empty" style="margin-top:0">Starts with sample documents of a fictional e-bike rental company. Add your own PDF, DOCX, TXT or MD files (up to 15 MB each). Files are read in your browser and never stored; only the few passages that match a question are sent to the model.</p>
+    <div style="margin-bottom:8px"><button class="btn ghost" type="button" id="clear">Remove sample documents</button></div>
+    <ul class="docs" id="docs"></ul>
+    <div class="drop" id="drop">Drop PDF, Word or text files here or <label style="color:var(--green);cursor:pointer;font-weight:600">choose files<input type="file" id="file" accept=".pdf,.docx,.txt,.md,application/pdf,text/plain" multiple hidden></label></div>
+    <p class="meta" id="stats"></p>
+  </div>
+  <div>
+    <h2>Retrieval test</h2>
+    <p class="empty" style="margin-top:0">Each test question has a known source document. The test checks whether that document is among the top 3 passages, with no model involved.</p>
+    <div style="display:flex;gap:16px;align-items:baseline;flex-wrap:wrap"><span class="big" id="hit">–</span><span class="empty">hit rate at 3 on the sample library</span></div>
+    <div class="scroll"><table id="evalt"></table></div>
+  </div>
+</section>
+
+<section class="band how">
+  <div><h3>1 · Chunk</h3><p>Documents are split into overlapping passages of about 600 characters, keeping paragraph boundaries.</p></div>
+  <div><h3>2 · Retrieve</h3><p>BM25 ranking with light stemming, so Slovenian word forms (cena, cene, ceni) match, plus a small English-Slovenian glossary so an English question finds a Slovenian price list. Runs locally, nothing is sent anywhere.</p></div>
+  <div><h3>3 · Answer</h3><p>Only the top 6 passages go to the model, with the rule: answer from these or say you don't know, cite every claim as [n].</p></div>
+  <div><h3>4 · Measure</h3><p>A small test set measures retrieval quality, so changes to chunking or ranking can be compared with numbers.</p></div>
+</section>
+
+<script>
+{
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const DOCS = [
+  {name: "Cenik najema 2026.md", sample: true, text: `Cenik najema električnih koles, velja od 1. 3. 2026.
+
+Najem za 2 uri: 15 EUR. Polovični dan (do 5 ur): 25 EUR. Cel dan (do 10 ur): 39 EUR. Vikend paket (petek 16:00 do nedelja 20:00): 89 EUR. Tedenski najem: 159 EUR.
+
+Vse cene vključujejo DDV, čelado in ključavnico. Otroški sedež: 5 EUR na najem. Dostava kolesa na naslov v Mariboru: 12 EUR.
+
+Študenti in upokojenci z veljavno izkaznico imajo 15 % popusta na enodnevni najem. Popusti se ne seštevajo.`},
+  {name: "Rental terms (EN).md", sample: true, text: `Rental terms for e-bikes.
+
+The renter must be at least 16 years old and show a valid ID or passport. Renters under 18 need written consent from a parent.
+
+A deposit of 200 EUR is blocked on a credit or debit card when the bike is picked up and released within 3 working days after return.
+
+Late return: every started hour after the agreed time is charged at 8 EUR. If the bike is more than 24 hours late without notice, we report it as stolen.
+
+Cancellation is free up to 24 hours before pickup. Later cancellations are charged at 50 % of the rental price.`},
+  {name: "Škoda in zavarovanje.md", sample: true, text: `Škoda, izguba in zavarovanje.
+
+Vsa kolesa so zavarovana proti kraji, kadar so zaklenjena s priloženo ključavnico. Če kolo ni zaklenjeno, najemnik krije polno vrednost kolesa (2.400 EUR).
+
+Izguba ključa ključavnice: 25 EUR. Izguba polnilnika baterije: 60 EUR. Poškodba baterije zaradi padca: po dejanskih stroških popravila, največ do višine varščine.
+
+Manjše praske in normalna obraba se ne zaračunajo. Defekt pnevmatike med vožnjo ni odgovornost najemnika; pokličite nas na 02 555 0147 in kolo zamenjamo brezplačno v Mariboru.`},
+  {name: "Lokacije in delovni čas.md", sample: true, text: `Lokacije in delovni čas.
+
+Glavna izposojevalnica: Lent, Usnjarska ulica 4, Maribor. Odprto od ponedeljka do sobote od 8:00 do 19:00, ob nedeljah in praznikih od 9:00 do 17:00. Od novembra do februarja je ob nedeljah zaprto.
+
+Druga točka: Pohorska vzpenjača, spodnja postaja. Odprto samo od aprila do oktobra, vsak dan od 9:00 do 18:00.
+
+Vračilo je mogoče na obeh lokacijah, ne glede na to, kje je bilo kolo prevzeto.`},
+  {name: "Employee handbook (EN).md", sample: true, text: `Employee handbook, section 3: time off.
+
+Full-time employees get 22 days of paid annual leave, plus 1 extra day for every 5 years of service and the extra days required by Slovenian law (for example for parents of children under 15). In their first calendar year, new employees get leave in proportion to the months worked.
+
+Leave must be requested in the HR app at least 7 days in advance. In the high season (June to August) at most two mechanics can be on leave at the same time.
+
+Sick leave: inform your team lead by phone before 8:00 on the first day and send the doctor's certificate (bolniški list) within 3 days.`},
+  {name: "Varstvo osebnih podatkov.md", sample: true, text: `Obvestilo o varstvu osebnih podatkov (povzetek).
+
+Upravljavec podatkov je Kolesarnica Drava d.o.o., Usnjarska ulica 4, Maribor. Za najem obdelujemo ime, priimek, datum rojstva, številko osebnega dokumenta, telefon in e-pošto. Pravna podlaga je sklenitev in izvajanje pogodbe.
+
+Kopije osebnih dokumentov ne hranimo; številko dokumenta izbrišemo 30 dni po vrnitvi kolesa, razen če je odprt spor glede škode. Podatke o najemih hranimo 5 let zaradi računovodskih predpisov.
+
+Pravice (dostop, popravek, izbris) uveljavljate na zasebnost@kolesarnica-drava.si. Pritožbo lahko vložite pri Informacijskem pooblaščencu.`},
+];
+const TESTS = [
+  ["How much is a full-day e-bike rental?", "Cenik najema 2026.md"],
+  ["Koliko stane izguba ključa?", "Škoda in zavarovanje.md"],
+  ["What happens if I bring the bike back late?", "Rental terms (EN).md"],
+  ["Ali je ob nedeljah pozimi odprto?", "Lokacije in delovni čas.md"],
+  ["How many vacation days do new employees get?", "Employee handbook (EN).md"],
+  ["Kako dolgo hranite številko osebne izkaznice?", "Varstvo osebnih podatkov.md"],
+  ["Is there a student discount?", "Cenik najema 2026.md"],
+  ["Who pays if the tyre goes flat?", "Škoda in zavarovanje.md"],
+];
+
+// ---------- chunking ----------
+let chunks = [];
+function chunkDoc(d) {
+  const paras = d.text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean), out = []; let cur = "";
+  for (const p of paras) {
+    if (cur && (cur + "\n\n" + p).length > 600) { out.push(cur); cur = cur.split(/(?<=[.!?])\s+/).slice(-1)[0] + "\n\n" + p; }
+    else cur = cur ? cur + "\n\n" + p : p;
+  }
+  if (cur) out.push(cur);
+  return out.map((t, i) => ({doc: d.name, part: i + 1, text: t}));
+}
+// ---------- BM25 with light stemming ----------
+const STOP = new Set("the a an and or of to in on at for is are be do does if i we you it this that what how who with from by as je in na za se so ali da ki ne pa ter po pri od do kako kaj koliko".split(" "));
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const tok = s => norm(s).match(/[a-z0-9]+/g)?.filter(w => !STOP.has(w) && w.length > 1).map(w => w.length > 5 ? w.slice(0, 5) : w) || [];
+let idx = null;
+function build() {
+  chunks = DOCS.flatMap(chunkDoc);
+  const docs = chunks.map(c => tok(c.doc.replace(/\.\w+$/, "") + " " + c.text)), df = new Map();
+  docs.forEach(d => new Set(d).forEach(t => df.set(t, (df.get(t) || 0) + 1)));
+  const N = docs.length, avg = docs.reduce((a, d) => a + d.length, 0) / N;
+  idx = {docs, N, avg, idf: t => Math.log(1 + (N - (df.get(t) || 0) + 0.5) / ((df.get(t) || 0) + 0.5))};
+  $("#stats").textContent = `${DOCS.length} documents · ${chunks.length} passages indexed`;
+  renderDocs(); runEval();
+}
+// EN <-> SL domain glossary for query expansion (cross-language BM25)
+const GLOSS = {price: "cena cenik", cost: "stane cena", much: "cena", rental: "najem", rent: "najem", day: "dan dnevni", full: "cel",
+  discount: "popust", student: "studenti", deposit: "varscina", key: "kljuc", lost: "izguba", lose: "izguba", tyre: "pnevmatika", tire: "pnevmatika", flat: "defekt",
+  damage: "skoda poskodba", insurance: "zavarovanje", theft: "kraja", open: "odprto", hours: "delovni cas", sunday: "nedelja", winter: "november februar",
+  location: "lokacija", data: "podatki", privacy: "zasebnost varstvo", delivery: "dostava",
+  najem: "rental", dopust: "leave", bolniska: "sick", zamuda: "late", vracilo: "return", odpoved: "cancellation", starost: "age", izkaznica: "id"};
+function expand(q) { const w = norm(q).match(/[a-z0-9]+/g) || []; return q + " " + w.map(x => GLOSS[x] || "").join(" "); }
+function search(q, k = 6) {
+  const qt = tok(expand(q));
+  const sc = idx.docs.map((d, i) => {
+    let s = 0; for (const t of qt) { const tf = d.filter(x => x === t).length; if (tf) s += idx.idf(t) * tf * 2.2 / (tf + 1.2 * (0.25 + 0.75 * d.length / idx.avg)); }
+    return {i, s};
+  });
+  return sc.filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, k).map(x => ({...chunks[x.i], score: x.s}));
+}
+
+// ---------- UI: library ----------
+function renderDocs() {
+  $("#docs").innerHTML = DOCS.map((d, i) => `<li><span>${esc(d.name)}${d.sample ? ' <span class="empty">· sample</span>' : ""}</span><button type="button" data-i="${i}" aria-label="Remove ${esc(d.name)}">Remove</button></li>`).join("");
+}
+$("#docs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { DOCS.splice(+b.dataset.i, 1); build(); } });
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "/vendor/pdf.worker.min.js";
+async function readFile(f) {
+  const ext = f.name.toLowerCase().split(".").pop();
+  if (ext === "pdf") {
+    const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer()}).promise; const pages = [];
+    for (let p = 1; p <= Math.min(pdf.numPages, 300); p++) { const c = await (await pdf.getPage(p)).getTextContent(); pages.push(c.items.map(i => i.str + (i.hasEOL ? "\n" : " ")).join("")); }
+    return pages.join("\n\n");
+  }
+  if (ext === "docx") return (await mammoth.extractRawText({arrayBuffer: await f.arrayBuffer()})).value;
+  return f.text();
+}
+async function addFiles(files) {
+  const st = $("#stats");
+  for (const f of files) {
+    if (f.size > 15e6) { st.textContent = f.name + " is larger than 15 MB, skipped."; continue; }
+    st.textContent = "Reading " + f.name + "…";
+    try { const text = (await readFile(f)).replace(/[ \t]+/g, " ").trim(); if (text.length < 20) { st.textContent = f.name + ": no readable text (scanned PDF?)."; continue; } DOCS.push({name: f.name, text}); }
+    catch (e) { st.textContent = "Could not read " + f.name + "."; }
+  }
+  build();
+}
+$("#clear").addEventListener("click", () => { for (let i = DOCS.length - 1; i >= 0; i--) if (DOCS[i].sample) DOCS.splice(i, 1); build(); $("#chips").innerHTML = ""; hits = []; renderBars(); $("#passage").innerHTML = ""; $("#ans").innerHTML = '<span class="empty">Add your documents, then ask a question.</span>'; });
+$("#file").addEventListener("change", e => addFiles(e.target.files));
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("on"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("on"); }));
+drop.addEventListener("drop", e => addFiles(e.dataTransfer.files));
+
+// ---------- UI: retrieval chart ----------
+let hits = [];
+function renderBars(cited = new Set()) {
+  if (!hits.length) { $("#bars").innerHTML = '<p class="empty">No passage matches these words. The assistant will say it does not know.</p>'; return; }
+  const max = hits[0].score;
+  $("#bars").innerHTML = hits.map((h, i) => `<div class="bar${cited.has(i + 1) ? " cited" : ""}" data-i="${i}" role="button" tabindex="0"><span class="n">[${i + 1}]</span><span class="t"><b>${esc(h.doc)} · part ${h.part}</b><span class="track"><i style="width:${Math.max(6, h.score / max * 100).toFixed(0)}%"></i></span></span><span class="s">${h.score.toFixed(1)}</span></div>`).join("");
+}
+function showPassage(i) { const h = hits[i]; if (h) $("#passage").innerHTML = `<div class="passage"><b>[${i + 1}] ${esc(h.doc)}</b>\n${esc(h.text)}</div>`; }
+$("#bars").addEventListener("click", e => { const b = e.target.closest(".bar"); if (b) showPassage(+b.dataset.i); });
+$("#bars").addEventListener("keydown", e => { if (e.key === "Enter") { const b = e.target.closest(".bar"); if (b) showPassage(+b.dataset.i); } });
+$("#ans").addEventListener("click", e => { const c = e.target.closest(".c"); if (c) showPassage(+c.dataset.i); });
+
+// ---------- answering ----------
+const prompt = (q, ctx) => `You answer questions about a company's documents. Use ONLY the numbered passages below. Cite every statement with the passage number in square brackets, like [2]. If the passages do not contain the answer, reply exactly that the documents do not say, in the language of the question. Answer in the language of the question, in 1 to 4 short sentences.
+
+PASSAGES:
+${ctx.map((h, i) => `[${i + 1}] (${h.doc})\n${h.text}`).join("\n\n")}
+
+QUESTION: ${q}`;
+function renderAnswer(text) {
+  const cited = new Set();
+  $("#ans").innerHTML = esc(text).replace(/\[(\d+)\]/g, (m, n) => { if (hits[n - 1]) { cited.add(+n); return `<span class="c" data-i="${n - 1}" title="${esc(hits[n - 1].doc)}">[${n}]</span>`; } return m; });
+  renderBars(cited); return cited;
+}
+let busy = false;
+async function ask(q) {
+  q = q.trim(); if (!q || busy) return;
+  $("#q").value = q; hits = search(q); renderBars(); $("#passage").innerHTML = "";
+  if (!DOCS.length) { $("#ans").innerHTML = '<span class="empty">Add at least one document first.</span>'; return; }
+  if (!hits.length) { renderAnswer("The documents do not contain information about this."); return; }
+  busy = true; $("#go").disabled = true; $("#ans").textContent = "Reading the passages…"; const t0 = performance.now();
+  try {
+    const r = await fetch("/api/gemini", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({contents: [{role: "user", parts: [{text: prompt(q, hits)}]}], generationConfig: {temperature: 0.1}})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "Service error " + r.status);
+    const text = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("") || "No answer, please try again.";
+    const cited = renderAnswer(text);
+    $("#meta").textContent = `${((performance.now() - t0) / 1000).toFixed(1)} s · ${hits.length} passages sent · ${cited.size} cited · Gemini 2.5 Flash`;
+    if (cited.size) showPassage([...cited][0] - 1);
+  } catch (e) { $("#ans").textContent = "Error: " + e.message; }
+  busy = false; $("#go").disabled = false;
+}
+$("#f").addEventListener("submit", e => { e.preventDefault(); ask($("#q").value); });
+const CHIPS = ["How much is a full-day e-bike rental?", "Koliko stane izguba ključa?", "Ali je ob nedeljah pozimi odprto?", "How many vacation days do new employees get?", "Do you rent cargo bikes?"];
+$("#chips").innerHTML = CHIPS.map(c => `<button class="chip" type="button">${esc(c)}</button>`).join("");
+$("#chips").addEventListener("click", e => { if (e.target.matches(".chip")) ask(e.target.textContent); });
+
+// ---------- evaluation ----------
+function runEval() {
+  const sampleOnly = DOCS.filter(d => d.sample).length === 6;
+  let ok = 0;
+  const rows = TESTS.map(([q, want]) => { const top = search(q, 3); const rank = top.findIndex(h => h.doc === want) + 1; if (rank) ok++; return {q, want, rank}; });
+  $("#hit").textContent = Math.round(ok / TESTS.length * 100) + " %";
+  $("#evalt").innerHTML = `<tr><th>Test question</th><th>Expected source</th><th>Rank</th></tr>` + rows.map(r => `<tr><td>${esc(r.q)}</td><td>${esc(r.want)}</td><td class="${r.rank ? "ok" : "no"}">${r.rank ? "#" + r.rank : "missed"}</td></tr>`).join("");
+  if (!sampleOnly) $("#evalt").insertAdjacentHTML("beforeend", '<tr><td colspan="3" class="empty">Library changed: scores now include your documents.</td></tr>');
+}
+
+build();
+$("#q").value = CHIPS[0]; hits = search(CHIPS[0]); renderBars(); showPassage(0);
+$("#ans").innerHTML = '<span class="empty">The retriever already found the passages on the right. Press Ask to have the model write a cited answer.</span>';
+}
+</script>
+</body>
+</html>

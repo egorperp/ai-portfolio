@@ -202,7 +202,7 @@ const TOOLS = [
    }},
 ];
 const SYSTEM = `You are an invoicing assistant connected to Čebelca BIZ (Slovenian invoicing) through tools. Today is ${day(0)}. Amounts in EUR.
-Rules: look up partner and invoice IDs with tools, never guess. Before any call with confirm=true you MUST have shown the preview from the same tool with confirm=false and received the user's explicit approval in a later message. Next invoice number after 26-0043 is 26-0044. Answer briefly in the user's language, with amounts formatted like 1.234,56 €.`;
+Rules: look up partner and invoice IDs with tools, never guess. Before any call with confirm=true you MUST have shown the preview from the same tool with confirm=false and received the user's explicit approval in a later message. Next invoice number after 26-0043 is 26-0044. Always reply in the language of the user's latest message (English if they write in English, Slovenian if they write in Slovenian). Answer briefly in plain text without Markdown, with amounts formatted like 1.234,56 €.`;
 
 // ---------- render ledger ----------
 function render() {
@@ -239,7 +239,7 @@ async function viaGemini() {
     const parts = j.candidates?.[0]?.content?.parts || [];
     contents.push({role: "model", parts});
     const calls = parts.filter(p => p.functionCall);
-    if (!calls.length) { const text = parts.map(p => p.text || "").join("").trim() || "(no answer)"; add("m a", esc(text)); return text; }
+    if (!calls.length) { const text = parts.map(p => p.text || "").join("").trim() || "(no answer)"; add("m a", esc(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/^[-*] /gm, "• ")); return text; }
     contents.push({role: "user", parts: calls.map(c => ({functionResponse: {name: c.functionCall.name, response: {result: exec(c.functionCall.name, c.functionCall.args)}}}))});
   }
   throw new Error("Too many tool steps");

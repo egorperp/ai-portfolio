@@ -283,7 +283,7 @@ async function ask(q) {
     if (!r.ok) throw new Error(j.error || "Service error " + r.status);
     const text = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("") || "No answer, please try again.";
     const cited = renderAnswer(text);
-    $("#meta").textContent = `${((performance.now() - t0) / 1000).toFixed(1)} s · ${hits.length} passages sent · ${cited.size} cited · Gemini 2.5 Flash`;
+    $("#meta").textContent = `${((performance.now() - t0) / 1000).toFixed(1)} s · ${hits.length} passages sent · ${cited.size} cited · ${j.modelVersion || "Gemini"}`;
     if (cited.size) showPassage([...cited][0] - 1);
   } catch (e) { $("#ans").textContent = "Error: " + e.message; }
   busy = false; $("#go").disabled = false;

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Act check skill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+/* VOICE work: a compliance screening tool, calm and exact
+   IDEA the AI Act's risk pyramid as an assessment sheet: describe a use case, the tier lights up
+   PICTURE the four-tier pyramid, large, with the verdict tier filled and its article next to it
+   COLOUR white, ink, deep blue lead; tier colours red, orange, blue, green used only on the pyramid
+   TYPE Figtree 800 + Figtree, JetBrains Mono for the skill file
+   LAYOUT laptop: form left, pyramid right, report below full width; phone: title, pyramid, form, report */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0f1218);--ink:light-dark(#121620,#e8ebf2);--mute:light-dark(#5b6372,#9aa3b3);--line:light-dark(#e2e5ec,#262c37);--panel:light-dark(#f5f6f9,#161b24);--blue:light-dark(#1d3fbf,#7d97ff);--t1:light-dark(#c8231b,#ff6a60);--t2:light-dark(#d9730d,#ffa24a);--t3:light-dark(#1d6fd6,#5aa2ff);--t4:light-dark(#1f8a55,#43c983)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Figtree,system-ui,sans-serif;overflow-x:clip}
+a{color:var(--blue)}
+.band{padding:clamp(20px,3vw,40px) max(4vw,16px)}
+h1{font-weight:800;font-size:clamp(30px,4vw,46px);line-height:1.05;letter-spacing:-.02em;margin:0 0 8px;text-wrap:balance}
+.lede{color:var(--mute);margin:0;max-width:64ch}
+.top{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:start}
+@media(max-width:860px){.top{grid-template-columns:minmax(0,1fr)}.pyr{order:-1}}
+label{font-weight:600;font-size:14px;display:block;margin:14px 0 6px}
+textarea,input[type=password]{width:100%;font:16px Figtree,sans-serif;border:1px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);color:var(--ink)}
+textarea{min-height:150px;resize:vertical}
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font:500 14px Figtree,sans-serif;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:8px 12px;cursor:pointer;min-height:40px}
+.chip:hover,.chip[aria-pressed=true]{border-color:var(--blue);color:var(--blue)}
+.btn{font:600 15px Figtree,sans-serif;border:0;background:var(--blue);color:#fff;border-radius:8px;padding:12px 18px;min-height:44px;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.ghost{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.muted{color:var(--mute);font-size:14px}
+.pyr{position:relative}
+.fig{position:relative;min-height:330px}
+.fig svg{position:absolute;inset:0;width:100%;height:100%}
+.verdict{font-size:15px;margin-top:8px;min-height:3em}
+.report{border-top:1px solid var(--line)}
+.report h2{font-size:22px;margin:22px 0 8px;letter-spacing:-.01em}
+.report table{border-collapse:collapse;width:100%;font-size:15px}
+.report th,.report td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+.report th{color:var(--mute);font-weight:600}
+.report .scroll{overflow-x:auto}
+.report li{margin:4px 0}
+.report p,.report li{max-width:80ch}
+.empty{color:var(--mute);padding:20px 0}
+.skill{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:28px;background:var(--panel)}
+@media(max-width:860px){.skill{grid-template-columns:minmax(0,1fr)}}
+.skill h2{margin:0 0 8px;font-size:24px}
+pre{font:13px/1.5 'JetBrains Mono',monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;max-height:420px;white-space:pre-wrap;overflow-wrap:anywhere}
+.tag{display:inline-block;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:2px 10px;margin:2px 4px 2px 0}
+</style>
+</head>
+<body>
+<section class="band top">
+  <div>
+    <p style="margin:0 0 8px"><a href="/">← Portfolio</a></p><h1>Is this AI use case allowed?</h1>
+    <p class="lede">A Claude skill that screens an AI idea against the EU AI Act (as amended by the 2026 Digital Omnibus) and GDPR: risk tier, obligations with dates, safeguards and open questions.</p>
+    <label for="uc">Describe the use case</label>
+    <div class="presets" id="presets"></div>
+    <textarea id="uc" style="margin-top:10px"></textarea>
+    <div class="row">
+      <button class="btn" id="run">Check it</button>
+      <span class="muted" id="engine">Runs on Google Gemini 2.5 Flash with the skill as instructions</span>
+    </div>
+  </div>
+  <div class="pyr">
+    <div class="fig"><svg id="pyr" role="img" aria-label="AI Act risk pyramid"></svg></div>
+    <div class="verdict" id="verdict"></div>
+  </div>
+</section>
+
+<section class="band report" aria-live="polite"><div id="out"><p class="empty">The report appears here. The three examples show stored reports; describe your own case and press Check it for a live screening.</p></div></section>
+
+<section class="band skill" id="skill">
+  <div>
+    <h2>The skill</h2>
+    <p>One <code>SKILL.md</code> plus two reference files (AI Act tiers and timeline, GDPR checklist). Claude loads it whenever someone asks whether an AI idea is allowed.</p>
+    <p><span class="tag">Claude skill</span><span class="tag">EU AI Act</span><span class="tag">GDPR</span><span class="tag">Regulation (EU) 2026/1744</span></p>
+    <div class="row"><button class="btn ghost" id="copy">Copy SKILL.md</button></div>
+    <p class="muted">Install in Claude: Settings → Capabilities → Skills → upload the folder as a zip. Source: <a href="https://github.com/egorperp/ai-compliance-check" target="_blank" rel="noopener">github.com/egorperp/ai-compliance-check</a>. Screening only, not legal advice.</p>
+  </div>
+  <pre id="skillsrc"></pre>
+</section>
+
+<script>
+{
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const SKILL = "---\nname: ai-compliance-check\ndescription: Checks a planned or existing AI use case (chatbot, agent, automation, scoring, content generation) against the EU AI Act and GDPR, and returns the risk tier, obligations with deadlines, safeguards and open questions. Use when someone asks whether an AI idea is allowed, what it needs before going live, or for an AI Act / GDPR review.\n---\n\n# AI use-case compliance check (EU AI Act + GDPR)\n\nYou give a first, structured compliance screening of an AI use case. You are not a lawyer: say so once, at the end, and point to where a lawyer or the DPO is needed.\n\nLegal state used: EU AI Act (Regulation (EU) 2024/1689) as amended by the Digital Omnibus on AI (Regulation (EU) 2026/1744, in force 27 July 2026), and GDPR (Regulation (EU) 2016/679). Last checked November 2026. If today's date is much later, tell the user the dates may have moved.\n\n## Step 1: Get the facts (ask only what is missing)\n\nYou need these six facts. If the description already answers them, do not ask. If two or more are missing, ask for them in one short message with options, then continue.\n\n1. **Purpose**: what the system does and what decision or output it produces.\n2. **Role**: is the organisation building the AI system (provider) or using one built by someone else, such as ChatGPT, Claude, Gemini or Copilot (deployer)? Fine-tuning or rebranding can make you a provider.\n3. **People affected**: employees, customers, applicants, students, patients, citizens, children.\n4. **Data**: what personal data goes in, any special categories (health, biometrics, religion, union membership, sexual orientation, political opinions), any data about children.\n5. **Autonomy**: does a human review every output before it affects someone, or does it act automatically?\n6. **Interaction**: do people talk to it directly, or does it create text, images, audio or video that others will see?\n\n## Step 2: Classify under the AI Act\n\nGo through the tiers in this order and stop at the first that applies. Read `references/eu-ai-act.md` for the lists.\n\n1. **Prohibited (Article 5)**: if any practice matches, say so plainly: it cannot be deployed.\n2. **High-risk**: Annex III areas (biometrics, critical infrastructure, education, employment and HR, access to essential services such as credit or insurance, law enforcement, migration, justice and democracy) or safety components of Annex I products. Check the Article 6(3) exception (narrow procedural task, improving a completed human activity, detecting patterns without replacing human assessment, preparatory task). Profiling of natural persons in an Annex III area is always high-risk.\n3. **Transparency (Article 50)**: chatbots, synthetic content, deepfakes, emotion recognition, biometric categorisation, AI-generated text published to inform the public.\n4. **Minimal risk**: everything else. Still mention Article 4 (AI literacy measures for staff).\n\nSeparately note if the organisation provides a **general-purpose AI model** (rare for companies using APIs).\n\n## Step 3: GDPR check\n\nRead `references/gdpr.md`. Cover only what is relevant: lawful basis, transparency notice, data minimisation and retention, DPIA need, Article 22 automated decisions, processor agreement and international transfers for the AI vendor, special categories, data subject rights.\n\n## Step 4: Write the answer in this format\n\n```\n## Verdict\n\u003cone sentence: tier + whether it can go ahead and under what main condition>\n\n## AI Act classification\n| Question | Answer |\n|---|---|\n| Role | provider / deployer |\n| Risk tier | prohibited / high-risk / transparency / minimal |\n| Why | \u003cthe specific article, annex point or exception> |\n| Applies from | \u003cdate> |\n\n## What you must do\n\u003cnumbered list, AI Act and GDPR obligations together, each with the legal reference and who does it>\n\n## Recommended safeguards\n\u003ctechnical and organisational measures beyond the legal minimum: human review, logging, PII masking, evaluation set, kill switch, vendor settings such as zero data retention>\n\n## Open questions\n\u003cfacts that would change the verdict>\n\n\u003cone line: this is a screening, not legal advice; involve the DPO / a lawyer for X>\n```\n\n## Rules\n\n- Quote articles precisely (e.g. \"Art. 50(1)\"), never invent article numbers. If unsure, say \"check\" rather than guess.\n- Be decisive: give the most likely classification and say what would change it.\n- Keep it short: a typical answer fits on one screen.\n- Answer in the user's language; keep legal terms in English with the local term in brackets if helpful.\n- Do not soften a prohibited verdict.\n\n## Examples\n\n**Input:** \"Customer support chatbot on our website using the OpenAI API, answers questions about our products, can see order history.\"\n**Expected verdict:** Transparency tier, deployer. Must tell users they are talking to AI (Art. 50(1), from 2 Aug 2026), lawful basis contract (Art. 6(1)(b)), DPA with OpenAI and transfer safeguards, minimise order data in prompts, Art. 4 AI literacy for support staff.\n\n**Input:** \"Tool that ranks job applicants' CVs and rejects the bottom 50 % automatically.\"\n**Expected verdict:** High-risk (Annex III point 4, employment), deployer obligations from 2 Dec 2027 (Art. 26: human oversight, monitoring, logs, inform workers' representatives and candidates); GDPR Art. 22 problem because rejection is fully automated, so a human must review; DPIA required.\n";
+const REFS = {"act": "# EU AI Act quick reference (as amended by Regulation (EU) 2026/1744)\n\n## Timeline\n\n| Date | What applies |\n|---|---|\n| 2 Feb 2025 | Prohibitions (Art. 5, original eight), AI literacy (Art. 4) |\n| 2 Aug 2025 | General-purpose AI model obligations (Art. 53, 55), governance, penalties |\n| 2 Aug 2026 | Transparency obligations (Art. 50); most other provisions |\n| 2 Dec 2026 | Two new prohibitions added by the Omnibus; machine-readable marking (Art. 50(2)) for generative systems already on the market before 2 Aug 2026 |\n| 2 Dec 2027 | High-risk obligations for Annex III systems (postponed from 2 Aug 2026) |\n| 2 Aug 2028 | High-risk obligations for AI in Annex I products (postponed from 2 Aug 2027) |\n\nArt. 4 AI literacy is now a duty of effort: providers and deployers \"take measures to support AI literacy\" of staff using AI (training, guidelines). It applies to every risk tier.\n\n## Prohibited practices (Art. 5)\n\n1. Subliminal, manipulative or deceptive techniques that materially distort behaviour and cause significant harm.\n2. Exploiting vulnerabilities due to age, disability or social or economic situation.\n3. Social scoring leading to detrimental or disproportionate treatment.\n4. Predicting criminal offences based solely on profiling or personality traits.\n5. Untargeted scraping of facial images to build facial recognition databases.\n6. Emotion recognition in the workplace and in education (except medical or safety reasons).\n7. Biometric categorisation to infer race, political opinions, union membership, religion, sex life or sexual orientation.\n8. Real-time remote biometric identification in public spaces for law enforcement (narrow exceptions).\n9. (Omnibus, from 2 Dec 2026) AI systems generating non-consensual intimate imagery.\n10. (Omnibus, from 2 Dec 2026) AI systems generating child sexual abuse material.\n\nPenalty tier: up to EUR 35 million or 7 % of worldwide turnover.\n\n## High-risk: Annex III areas\n\n1. Biometrics: remote biometric identification, biometric categorisation, emotion recognition (where not prohibited).\n2. Critical infrastructure: safety components in digital infrastructure, road traffic, water, gas, heating, electricity.\n3. Education and vocational training: admission, evaluating learning outcomes, assessing the level of education, monitoring cheating.\n4. Employment and workers management: recruitment and selection (ads targeting, filtering applications, evaluating candidates), decisions on promotion, termination, task allocation based on behaviour or traits, monitoring and evaluating performance.\n5. Access to essential private and public services: eligibility for public benefits, creditworthiness and credit scores (except fraud detection), risk assessment and pricing in life and health insurance, emergency call triage.\n6. Law enforcement.\n7. Migration, asylum and border control.\n8. Administration of justice and democratic processes, including influencing elections.\n\n**Art. 6(3) exception**: an Annex III system is not high-risk if it does not pose a significant risk and only (a) performs a narrow procedural task, (b) improves the result of a previously completed human activity, (c) detects decision patterns or deviations without replacing or influencing human assessment without proper review, or (d) performs a preparatory task. Never applies when the system profiles natural persons. The provider must document this assessment.\n\n## High-risk obligations (summary)\n\nProviders: risk management system, data governance, technical documentation, logging, transparency to deployers, human oversight design, accuracy and robustness and cybersecurity, quality management system, conformity assessment, CE marking, EU database registration, post-market monitoring, serious incident reporting.\n\nDeployers (Art. 26): use according to instructions, assign competent human oversight, ensure input data is relevant, monitor and keep logs (at least 6 months), inform workers and their representatives before using it at work, inform affected people when it makes or assists decisions about them, fundamental rights impact assessment for public bodies and some private deployers (credit, insurance) (Art. 27), right to explanation (Art. 86).\n\n## Transparency obligations (Art. 50)\n\n- 50(1) Providers: AI systems that interact with people must be designed so people know they are talking to AI (unless obvious).\n- 50(2) Providers: synthetic audio, image, video or text must be marked in a machine-readable way as AI-generated.\n- 50(3) Deployers: inform people exposed to emotion recognition or biometric categorisation.\n- 50(4) Deployers: disclose deepfakes; disclose AI-generated text published to inform the public on matters of public interest, unless it was human-reviewed with editorial responsibility.\n\n## Provider or deployer?\n\nA deployer becomes a provider if it puts its name or trademark on a high-risk system, makes a substantial modification, or changes the intended purpose so the system becomes high-risk (Art. 25). Building your own app on top of an LLM API makes you the provider of that AI system, while the model vendor is the GPAI model provider.\n", "gdpr": "# GDPR checklist for AI use cases\n\n| Topic | What to check | Reference |\n|---|---|---|\n| Lawful basis | Contract, legitimate interest (with balancing test), consent, legal obligation. Training or improving models on customer data usually needs its own basis. | Art. 6 |\n| Special categories | Health, biometrics, religion, political opinions, union membership, sex life, ethnicity need an Art. 9(2) condition, usually explicit consent. | Art. 9 |\n| Transparency | Privacy notice must say AI is used, for what, and who the vendors are. | Art. 13, 14 |\n| Minimisation | Send the model only what it needs; mask names, e-mails, phone numbers, IBANs where possible. | Art. 5(1)(c) |\n| Storage limitation | Retention period for prompts, outputs and logs; check the vendor's retention and zero-data-retention options. | Art. 5(1)(e) |\n| Accuracy | LLMs can produce wrong statements about people; correction process needed. | Art. 5(1)(d), 16 |\n| Automated decisions | A decision with legal or similarly significant effect based solely on automated processing needs an exception and safeguards: human intervention, right to contest, explanation. | Art. 22 |\n| DPIA | Required when processing is likely high risk: systematic evaluation or profiling, large-scale special categories, new technologies with high risk, monitoring employees. Most high-risk AI Act systems need one. | Art. 35 |\n| Processor agreement | Data processing agreement with the AI vendor (OpenAI, Anthropic, Google, Microsoft); check sub-processors. | Art. 28 |\n| International transfers | Vendor outside the EEA: EU-US Data Privacy Framework certification, SCCs, or EU data residency. | Art. 44 to 49 |\n| Security | Access control, encryption, logging, prompt-injection protection for agents that can act. | Art. 32 |\n| Data subject rights | Access, deletion, objection must work for data in prompts, logs and any vector database. | Art. 15 to 21 |\n| Children | Extra care, consent rules for information society services (age set nationally, 15 in Slovenia). | Art. 8 |\n| Employees | Monitoring or evaluating staff with AI: proportionality, information, often works council or union involvement. | Art. 88 + national law |\n\nSlovenian context: the supervisory authority is the Informacijski pooblaščenec (IP RS); national law is ZVOP-2.\n"};
+const EXAMPLES = [{"label": "Website support chatbot", "text": "Customer support chatbot on our online shop, built on the OpenAI API. It answers product questions and can look up a customer's order status after they enter their order number and e-mail. No decisions about customers; escalates to a human on request.", "report": "## Verdict\nTransparency tier: it can go live once users are clearly told they are chatting with AI and the OpenAI data processing terms are in place.\n\n## AI Act classification\n| Question | Answer |\n|---|---|\n| Role | Provider of the chatbot (built on the OpenAI API); OpenAI is the GPAI model provider |\n| Risk tier | Transparency |\n| Why | Interacts directly with people, Art. 50(1); not an Annex III area |\n| Applies from | 2 Aug 2026 (already applies) |\n\n## What you must do\n1. Show a clear notice that the user is talking to an AI system before or at the start of the chat (AI Act Art. 50(1); shop owner).\n2. Take AI literacy measures for the support team that maintains and supervises the bot (Art. 4).\n3. Lawful basis for processing order data: performance of contract (GDPR Art. 6(1)(b)).\n4. Update the privacy notice: AI chatbot, purpose, OpenAI as processor, retention of chat logs (Art. 13).\n5. Sign the OpenAI data processing addendum and check transfer safeguards (Art. 28, Art. 44-46).\n6. Send only the order fields needed to answer; never full payment or address data in prompts (Art. 5(1)(c)).\n7. Set a retention period for chat transcripts and make them reachable for access and deletion requests (Art. 5(1)(e), 15, 17).\n\n## Recommended safeguards\n- Verify order number and e-mail server-side before any lookup, so the model cannot be talked into another customer's data (prompt injection).\n- Mask e-mails and phone numbers in logs; turn on zero data retention if available.\n- Keep a small test set of real questions and re-run it after every prompt or model change.\n- Visible \"talk to a human\" button.\n\n## Open questions\n- Will chats be used to fine-tune or improve the model? That needs its own lawful basis.\n- Does the bot ever make offers, refunds or price decisions? That changes the risk picture.\n\nThis is a screening, not legal advice; involve your DPO for the privacy notice and the processor agreement."}, {"label": "CV screening tool", "text": "HR tool that reads job applicants' CVs, scores them against the job description with an LLM and automatically rejects the bottom 50 %. Recruiters only see the top half.", "report": "## Verdict\nHigh-risk and, as designed, not lawful: the automatic rejection needs real human review before it can be used.\n\n## AI Act classification\n| Question | Answer |\n|---|---|\n| Role | Deployer (provider too if you built the tool) |\n| Risk tier | High-risk |\n| Why | Annex III point 4(a): filtering applications and evaluating candidates in recruitment; it profiles people, so the Art. 6(3) exception cannot apply |\n| Applies from | 2 Dec 2027 (Annex III, as amended by Regulation (EU) 2026/1744) |\n\n## What you must do\n1. Stop automatic rejection: a decision with significant effect based solely on automated processing breaks GDPR Art. 22 without an exception and safeguards. A recruiter must review every rejection.\n2. Run a DPIA before use: systematic evaluation of people (GDPR Art. 35).\n3. As deployer: use per the provider's instructions, assign trained human oversight, keep logs for at least 6 months, monitor for problems (AI Act Art. 26).\n4. Inform workers' representatives before introducing it, and tell candidates that AI assists the decision (Art. 26(7), 26(11)).\n5. If you built it: full provider duties (risk management, data governance and bias testing, technical documentation, logging, conformity assessment, EU database registration) by 2 Dec 2027.\n6. Candidates can ask for an explanation of the role the AI played (Art. 86).\n7. AI literacy measures for recruiters (Art. 4).\n\n## Recommended safeguards\n- Use the score to sort, never to reject.\n- Test for bias by gender, age and nationality on past applications.\n- Remove names, photos, age and address before scoring.\n- Log every score with the reason shown to the recruiter.\n\n## Open questions\n- Is the tool bought or self-built? This decides provider vs deployer duties.\n- Are candidates outside the EU involved?\n\nThis is a screening, not legal advice; involve a lawyer and your DPO before procurement."}, {"label": "Emotion tracking at work", "text": "Webcam software for our call centre that detects agents' emotions (stress, anger, boredom) during calls and reports a mood score to team leads every day.", "report": "## Verdict\nProhibited: emotion recognition in the workplace cannot be deployed in the EU (except for medical or safety reasons).\n\n## AI Act classification\n| Question | Answer |\n|---|---|\n| Role | Deployer |\n| Risk tier | Prohibited |\n| Why | Art. 5(1)(f): AI systems that infer emotions of natural persons in the workplace |\n| Applies from | 2 Feb 2025 (already applies) |\n\n## What you must do\n1. Do not deploy it. Penalties go up to EUR 35 million or 7 % of worldwide turnover (Art. 99).\n2. If a pilot already runs, stop it and delete the biometric data collected (GDPR Art. 5, 9, 17).\n3. A safety exception (for example detecting fatigue of drivers) would need a narrow, documented medical or safety purpose; daily mood scores for team leads do not qualify.\n\n## Recommended safeguards\n- Use call outcome metrics or voluntary, anonymous wellbeing surveys instead.\n- If the goal is quality: analyse call transcripts for topics (not emotions of the agent), with works council agreement and a DPIA.\n\n## Open questions\n- None that would change the verdict for this purpose.\n\nThis is a screening, not legal advice; talk to a lawyer before any alternative that monitors employees."}];
+$("#skillsrc").textContent = SKILL;
+
+const TIERS = [["prohibited", "Prohibited", "Art. 5", "--t1"], ["high-risk", "High-risk", "Art. 6, Annex III", "--t2"], ["transparency", "Transparency", "Art. 50", "--t3"], ["minimal", "Minimal risk", "Art. 4 literacy", "--t4"]];
+let active = null;
+const pyr = $("#pyr");
+function draw() {
+  const W = pyr.clientWidth, H = pyr.clientHeight, top = 10, bot = H - 10, cx = W * 0.42, half = Math.min(W * 0.4, H * 0.62);
+  const h = (bot - top) / 4; let s = "";
+  TIERS.forEach(([k, name, art, col], i) => {
+    const y0 = top + i * h, y1 = y0 + h - 4, w0 = half * (i / 4), w1 = half * ((i + 1) / 4);
+    const on = active === k, dim = active && !on;
+    s += `<path d="M${cx - w0},${y0} L${cx + w0},${y0} L${cx + w1},${y1} L${cx - w1},${y1} Z" fill="var(${col})" opacity="${dim ? 0.18 : on ? 1 : 0.55}"/>`;
+    const tx = cx + w1 + 14;
+    s += `<text x="${tx}" y="${y0 + h / 2 - 2}" font-weight="${on ? 800 : 600}" font-size="${on ? 17 : 15}" fill="var(--ink)">${name}</text><text x="${tx}" y="${y0 + h / 2 + 17}" font-size="13" fill="var(--mute)">${art}</text>`;
+    if (on) s += `<circle cx="${cx}" cy="${y0 + h * 0.62}" r="7" fill="#fff" stroke="var(--ink)" stroke-width="2"/>`;
+  });
+  pyr.innerHTML = s;
+}
+const ro = new ResizeObserver(draw); ro.observe(pyr);
+
+// tiny markdown renderer: headings, tables, lists, bold, code, paragraphs
+function md(src) {
+  const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  const lines = src.replace(/\r/g, "").split("\n"); let html = "", i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^#{1,3} /.test(l)) { html += `<h2>${inline(l.replace(/^#+ /, ""))}</h2>`; i++; }
+    else if (/^\|/.test(l)) {
+      const rows = []; while (i < lines.length && /^\|/.test(lines[i])) { if (!/^\|[\s:|-]+\|$/.test(lines[i])) rows.push(lines[i].slice(1, -1).split("|").map(c => c.trim())); i++; }
+      html += `<div class="scroll"><table><tr>${rows[0].map(c => `<th>${inline(c)}</th>`).join("")}</tr>${rows.slice(1).map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</table></div>`;
+    } else if (/^(\d+\.|-) /.test(l)) {
+      const ol = /^\d/.test(l), items = []; while (i < lines.length && /^(\d+\.|-) /.test(lines[i])) { items.push(lines[i].replace(/^(\d+\.|-) /, "")); i++; }
+      html += `<${ol ? "ol" : "ul"}>${items.map(t => `<li>${inline(t)}</li>`).join("")}</${ol ? "ol" : "ul"}>`;
+    } else if (l.trim()) { html += `<p>${inline(l)}</p>`; i++; } else i++;
+  }
+  return html;
+}
+function show(report) {
+  $("#out").innerHTML = md(report);
+  const tierLine = (report.match(/Risk tier\s*\|\s*([^|\n]+)/i) || [])[1] || report.split("\n").slice(0, 4).join(" ");
+  const t = tierLine.toLowerCase();
+  active = t.includes("prohib") ? "prohibited" : t.includes("high") ? "high-risk" : t.includes("transparen") ? "transparency" : t.includes("minimal") ? "minimal" : null;
+  const v = (report.match(/## Verdict\s*\n+([^\n]+)/) || [])[1] || "";
+  $("#verdict").textContent = v; draw();
+}
+
+$("#presets").innerHTML = EXAMPLES.map((e, k) => `<button class="chip" type="button" data-k="${k}" aria-pressed="false">${esc(e.label)}</button>`).join("");
+$("#presets").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c === b));
+  const ex = EXAMPLES[+b.dataset.k]; $("#uc").value = ex.text; show(ex.report);
+});
+
+const PROMPT = uc => `Today is ${new Date().toISOString().slice(0, 10)}. Do not ask follow-up questions: state assumptions under Open questions instead. Use exactly the answer format from Step 4.\n\nUSE CASE:\n${uc}`;
+const SYSTEM = `${SKILL}\n\n# references/eu-ai-act.md\n${REFS.act}\n\n# references/gdpr.md\n${REFS.gdpr}`;
+$("#run").addEventListener("click", async () => {
+  const uc = $("#uc").value.trim(); if (!uc) { $("#uc").focus(); return; }
+  if (uc.length > 4000) { $("#out").innerHTML = '<p class="empty">Please keep the description under 4,000 characters.</p>'; return; }
+  $("#run").disabled = true; $("#run").textContent = "Checking…"; $("#out").innerHTML = '<p class="empty">Reading the AI Act and GDPR references…</p>';
+  try {
+    const r = await fetch("/api/gemini", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({systemInstruction: {parts: [{text: SYSTEM}]}, contents: [{role: "user", parts: [{text: PROMPT(uc)}]}], generationConfig: {temperature: 0.2}})});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "Service error " + r.status);
+    const text = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
+    if (!text) throw new Error("No answer, please try again.");
+    show(text);
+  } catch (e) { $("#out").innerHTML = `<p class="empty">${esc(e.message)}</p>`; }
+  $("#run").disabled = false; $("#run").textContent = "Check it";
+});
+$("#copy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(SKILL); $("#copy").textContent = "Copied"; } catch { $("#copy").textContent = "Select the text to copy"; } });
+
+document.querySelector(".chip").click();
+}
+</script>
+</body>
+</html>

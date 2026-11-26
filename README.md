@@ -1,6 +1,6 @@
 # yegor-ai: AI tools portfolio on Cloudflare Workers
 
-Live: https://yegor-ai.workers.dev
+Live: https://yegor-ai.yegorperekrostov.workers.dev
 
 | Path | What it is |
 |---|---|
